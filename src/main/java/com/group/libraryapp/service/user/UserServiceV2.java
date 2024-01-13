@@ -5,11 +5,10 @@ import com.group.libraryapp.dto.user.request.UserCreateRequest;
 import com.group.libraryapp.dto.user.request.UserUpdateRequest;
 import com.group.libraryapp.dto.user.response.UserResponse;
 import org.springframework.stereotype.Service;
+import com.group.libraryapp.domain.user.UserRepository;
 import org.springframework.transaction.annotation.Transactional;
-import com.group.libraryapp.repository.user.UserRepository;
+import org.springframework.web.bind.annotation.RequestBody;
 
-import javax.naming.Name;
-import java.io.IOException;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -22,29 +21,38 @@ public class UserServiceV2 {
     this.userRepository = userRepository;
   }
 
+  // 아래 있는 함수가 시작될 때 start transaction을 해줌 (트랜잭션을 시작)
+  // 함수가 예외 없이 잘 끝났다면 commit
+  // 혹시 문ㄴ제가 있다면 rollback
+  @Transactional
   public void saveUser(UserCreateRequest request) {
     userRepository.save(new User(request.getName(), request.getAge()));
   }
 
+  @Transactional(readOnly = true)
   public List<UserResponse> getUsers() {
     return userRepository.findAll().stream()
             .map(UserResponse::new)
             .collect(Collectors.toList());
   }
 
+  @Transactional
   public void updateUser(UserUpdateRequest request) {
     User user = userRepository.findById(request.getId())
             .orElseThrow(IllegalArgumentException::new);
 
     user.updateName(request.getName());
+   // userRepository.save(user); 
+    //Transactional이 감지해서 저장해준다
   }
 
+  @Transactional
   public void deleteUser(String name) {
     //
-   User user = userRepository.findByName(name);
-    if (user == null){
-      throw new IllegalArgumentException();
-    }
+   User user = userRepository.findByName(name)
+           .orElseThrow(IllegalArgumentException::new);
+
+    userRepository.delete(user);
 
    /* if (!userRepository.existsByName(name)) {
       throw new IllegalArgumentException();
